@@ -1,5 +1,5 @@
 {
-	"name": "svelte-migrate",
+	"name": "my-svelte-migrate",
 	"version": "1.6.9",
 	"type": "module",
 	"description": "A CLI for migrating Svelte(Kit) codebases",

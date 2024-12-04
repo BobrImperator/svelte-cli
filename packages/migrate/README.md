@@ -1,3 +1,10 @@
+# Running forked
+
+- add package.json script `    "migrate": "./node_modules/my-svelte-migrate/bin.js"`
+- run `pnpm link --global` inside the migrate package
+- run `pnpm link my-svelte-migrate` inside target package
+- run `pnpm run migrate storybook-8`
+
 # svelte-migrate
 
 A CLI for migrating Svelte(Kit) codebases.
