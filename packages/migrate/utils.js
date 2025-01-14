@@ -297,7 +297,7 @@ export function log_migration(text) {
  * @param {(code: string, is_ts: boolean, file_path: string) => string} transform_script_code
  * @param {(code: string, file_path: string) => string} transform_svelte_code
  */
-export function update_svelte_file(file_path, transform_script_code, transform_svelte_code) {
+export async function update_svelte_file(file_path, transform_script_code, transform_svelte_code) {
 	try {
 		const content = fs.readFileSync(file_path, 'utf-8');
 		const updated = content.replace(
@@ -311,7 +311,7 @@ export function update_svelte_file(file_path, transform_script_code, transform_s
 				)}</script>${whitespace}`;
 			}
 		);
-		fs.writeFileSync(file_path, transform_svelte_code(updated, file_path), 'utf-8');
+		fs.writeFileSync(file_path, await transform_svelte_code(updated, file_path), 'utf-8');
 	} catch (err) {
 		// TODO: change to import('svelte/compiler').Warning after upgrading to Svelte 5
 		const e = /** @type {any} */ (err);

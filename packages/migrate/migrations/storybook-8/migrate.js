@@ -1,4 +1,6 @@
 import { Project, ts, Node, SyntaxKind } from 'ts-morph';
+import MagicString from 'magic-string';
+import { walk } from 'zimmerframe';
 
 /**
  * @param {string} code
@@ -15,17 +17,90 @@ export function transform_module_code(code) {
  * @param {(source: string, options: { filename?: string, use_ts?: boolean }) => { code: string }} transform_code
  * @param {{ filename?: string, use_ts?: boolean }} options
  */
-export function transform_svelte_code(code, transform_code, options) {
+export async function transform_svelte_code(code, compiler, options) {
 	let updatedSource = code;
 
-	if (code.includes('<Template')) {
-		updatedSource = code
-			.replace(/<Template.*>/g, '')
-			.replace(/{#snippet children.*}/g, '{#snippet template(args)}')
-			.replace(/<\/Template>/g, '');
+//	if (code.includes('<Template')) {
+//		updatedSource = code
+//			.replace(/<Template.*>/g, '')
+//			.replace(/{#snippet children.*}/g, '{#snippet template(args)}')
+//			.replace(/<\/Template>/g, '');
+//	}
+
+	const preprocessed = await compiler.preprocess(code, {
+		/** @param {{ content: string }} input */
+		script: ({ content }) => ({
+			code: content
+				.split('\n')
+				.map((line) => ' '.repeat(line.length))
+				.join('\n')
+		}),
+		/** @param {{ content: string }} input */
+		style: ({ content }) => ({
+			code: content
+				.split('\n')
+				.map((line) => ' '.repeat(line.length))
+				.join('\n')
+		})
+	});
+
+
+	const ast = await compiler.parse(preprocessed.code);
+	const magic = new MagicString(code);
+
+
+  console.log(ast);
+  console.log(ast.html.children)
+  const updates = [];
+	let is_foreign = false;
+	let is_custom_element = false;
+
+	walk(ast.html, null, {
+		_(node, { next, stop }) {
+      console.log(node.type);
+
+      console.log(node.value);
+			if (node.type === 'Options') {
+				const namespace = node.attributes.find(
+					/** @param {any} a */
+					(a) => a.type === 'Attribute' && a.name === 'namespace'
+				);
+				if (namespace?.value[0].data === 'foreign') {
+					is_foreign = true;
+					stop();
+					return;
+				}
+
+				is_custom_element = node.attributes.some(
+					/** @param {any} a */
+					(a) => a.type === 'Attribute' && (a.name === 'customElement' || a.name === 'tag')
+				);
+			}
+
+			if (node.type === 'Element' || node.type === 'Script') {
+        console.log('hello');
+				let start = node.end - 2;
+				if (code[start - 1] === ' ') {
+					start--;
+				}
+				updates.push(() => {
+					if (node.type === 'Element' || is_custom_element) {
+						magic.update(start, node.end, `></${node.name}>`);
+					}
+				});
+			}
+
+			next();
+		}
+	});
+
+	if (is_foreign) {
+		return code;
 	}
 
-	return transform_code(updatedSource, options).code;
+	updates.forEach((update) => update());
+	return magic.toString();
+	return compiler.migrate(updatedSource, options).code;
 }
 
 /**

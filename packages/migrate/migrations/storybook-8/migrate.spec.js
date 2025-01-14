@@ -1,8 +1,9 @@
 import { assert, test } from 'vitest';
-import { transform_module_code } from './migrate.js';
+import { transform_svelte_code } from './migrate.js';
+import { migrate, parse, preprocess } from 'svelte/compiler';
 
-test('Updates component creation #1', () => {
-	const result = transform_module_code(
+test('Updates component creation #1', async () => {
+	const result = await transform_svelte_code(
 		`<script module>
       import { Story, Template } from "@storybook/addon-svelte-csf";
 	import DefaultHeader from "./header.svelte";
@@ -34,7 +35,10 @@ test('Updates component creation #1', () => {
 		heading: "Praesent molestie quam et diam egestas, id semper quam accumsan",
 		heading_level: 3,
 	}}
-/>`);
+/>`,
+		{ migrate, preprocess, parse },
+		{ filename: 'example.svelte', use_ts: true }
+	);
 	assert.equal(
 		result,
 		`<script module>
@@ -67,5 +71,6 @@ test('Updates component creation #1', () => {
 		heading_level: 3,
 	}}
 />
-`);
+`
+	);
 });

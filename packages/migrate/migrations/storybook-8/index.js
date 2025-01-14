@@ -19,17 +19,17 @@ export async function migrate() {
 		'This migration is experimental — please report any bugs to https://github.com/sveltejs/svelte/issues'
 	);
 
-	let migrate;
+	let compiler;
 	try {
 		try {
-			({ migrate } = await import_from_cwd('svelte/compiler'));
+			compiler = await import_from_cwd('svelte/compiler');
 		} catch {
 			execSync('npm install svelte@^5.0.0 --no-save', {
 				stdio: 'inherit',
 				cwd: dirname(fileURLToPath(import.meta.url))
 			});
 			const url = resolve('svelte/compiler', import.meta.url);
-			({ migrate } = await import(url));
+			compiler = await import(url);
 		}
 	} catch (e) {
 		console.log(e);
@@ -103,8 +103,8 @@ export async function migrate() {
 	for (const file of files) {
 		if (extensions.some((ext) => file.endsWith(ext))) {
 			if (svelte_extensions.some((ext) => file.endsWith(ext))) {
-				update_svelte_file(file, transform_module_code, (code) =>
-					transform_svelte_code(code, migrate, { filename: file, use_ts })
+				await update_svelte_file(file, transform_module_code, (code) =>
+					transform_svelte_code(code, compiler, { filename: file, use_ts })
 				);
 			} else {
 				update_js_file(file, transform_module_code);
